@@ -124,10 +124,15 @@ export default function PromptEditor({
       detectAndAddVariables(content);
     }, 500);
   }, [detectAndAddVariables]);
-
   const handleSave = async () => {
     if (!formData.name || !formData.content) {
       toast.error('Name and content are required');
+      return;
+    }
+
+    // Add category validation
+    if (!formData.categoryId) {
+      toast.error('Category is required');
       return;
     }
 
@@ -342,23 +347,28 @@ export default function PromptEditor({
                     className="px-3 py-2 border border-gray-300 focus:border-transparent rounded-md focus:ring-2 focus:ring-blue-500 w-full"
                     placeholder="Enter prompt name"
                   />
-                </div>
-                <div>
+                </div>                <div>
                   <label className="block mb-2 font-medium text-gray-700 text-sm">
-                    Category
+                    Category *
                   </label>
                   <select
                     value={formData.categoryId || ''}
                     onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                    className="px-3 py-2 border border-gray-300 focus:border-transparent rounded-md focus:ring-2 focus:ring-blue-500 w-full"
+                    className={`px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 w-full ${
+                      !formData.categoryId ? 'border-red-300' : 'border-gray-300 focus:border-transparent'
+                    }`}
+                    required
                   >
-                    <option value="">No Category</option>
+                    <option value="">Select a category...</option>
                     {categories.map(category => (
                       <option key={category.id} value={category.id}>
                         {category.name}
                       </option>
                     ))}
                   </select>
+                  {!formData.categoryId && (
+                    <p className="mt-1 text-red-600 text-sm">Category is required</p>
+                  )}
                 </div>
               </div>
 
