@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Save, X, Play, Download, Plus, Minus } from 'lucide-react';
 import { PromptTemplate, Category, Tag, PromptVariable } from '@/types';
+import { promptTemplateAPI } from '@/services/api';
 import * as yaml from 'js-yaml';
 import toast from 'react-hot-toast';
 
@@ -34,7 +35,10 @@ export default function PromptEditor({
   const [executionResult, setExecutionResult] = useState<string | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [activeTab, setActiveTab] = useState<'editor' | 'variables' | 'test'>('editor');
+  const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const suggestionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (prompt) {
@@ -46,15 +50,17 @@ export default function PromptEditor({
       });
       setExecutionVariables(initVars);
     }  }, [prompt]);
-
   // Cleanup timeout on component unmount
   useEffect(() => {
     return () => {
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
       }
+      if (suggestionTimeoutRef.current) {
+        clearTimeout(suggestionTimeoutRef.current);
+      }
     };
-  }, []);  // Function to detect variables in content and automatically add them
+  }, []);// Function to detect variables in content and automatically add them
   const detectAndAddVariables = useCallback((content: string) => {
     // Find all variables in the format {{variableName}}
     // This pattern requires exactly {{ and }} with non-brace content in between
@@ -123,7 +129,82 @@ export default function PromptEditor({
     debounceTimeoutRef.current = setTimeout(() => {
       detectAndAddVariables(content);
     }, 500);
-  }, [detectAndAddVariables]);
+  }, [detectAndAddVariables]);  // Function to suggest category and tags based on content using AI
+  const suggestCategoryAndTags = useCallback(async (content: string, name: string = '') => {
+    if (!content.trim() && !name.trim()) {
+      setSuggestedCategory(null);
+      setSuggestedTags([]);
+      return;
+    }
+
+    try {
+      // Call the AI suggestion API
+      const suggestions = await promptTemplateAPI.getSuggestions({
+        name: name.trim(),
+        content: content.trim()
+      });
+
+      // Validate and apply category suggestion
+      if (suggestions.suggestedCategoryId && !formData.categoryId) {
+        const validCategory = categories.find(cat => cat.id === suggestions.suggestedCategoryId);
+        if (validCategory) {
+          setSuggestedCategory(suggestions.suggestedCategoryId);
+        }
+      } else if (formData.categoryId) {
+        setSuggestedCategory(null);
+      }
+
+      // Validate and apply tag suggestions
+      if (suggestions.suggestedTagIds && suggestions.suggestedTagIds.length > 0) {
+        const currentTags = formData.tags || [];
+        const validTagIds = suggestions.suggestedTagIds.filter((tagId: string) => {
+          const validTag = tags.find(tag => tag.id === tagId);
+          return validTag && !currentTags.includes(tagId);
+        });
+        
+        // Limit to top 3 suggestions
+        setSuggestedTags(validTagIds.slice(0, 3));
+      } else {
+        setSuggestedTags([]);
+      }
+    } catch (error) {
+      console.error('Failed to get AI suggestions:', error);
+      
+      // Fallback to simple keyword matching if AI fails
+      const fullText = `${name} ${content}`.toLowerCase();
+      
+      // Simple category fallback
+      if (!formData.categoryId) {
+        const matchingCategory = categories.find(category => 
+          fullText.includes(category.name.toLowerCase())
+        );
+        setSuggestedCategory(matchingCategory?.id || null);
+      }
+      
+      // Simple tag fallback
+      const currentTags = formData.tags || [];
+      const matchingTags = tags
+        .filter(tag => fullText.includes(tag.name.toLowerCase()))
+        .filter(tag => !currentTags.includes(tag.id))
+        .slice(0, 3)
+        .map(tag => tag.id);
+      
+      setSuggestedTags(matchingTags);
+    }
+  }, [categories, tags, formData.categoryId, formData.tags]);
+
+  // Debounced version of suggestion generation
+  const debouncedSuggestCategoryAndTags = useCallback((content: string, name: string = '') => {
+    // Clear existing timeout
+    if (suggestionTimeoutRef.current) {
+      clearTimeout(suggestionTimeoutRef.current);
+    }
+
+    // Set new timeout for 1000ms after user stops typing
+    suggestionTimeoutRef.current = setTimeout(() => {
+      suggestCategoryAndTags(content, name);
+    }, 1000);
+  }, [suggestCategoryAndTags]);
   const handleSave = async () => {
     if (!formData.name || !formData.content) {
       toast.error('Name and content are required');
@@ -339,21 +420,30 @@ export default function PromptEditor({
                 <div>
                   <label className="block mb-2 font-medium text-gray-700 text-sm">
                     Name *
-                  </label>
-                  <input
+                  </label>                  <input
                     type="text"
                     value={formData.name || ''}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => {
+                      const newName = e.target.value;
+                      setFormData({ ...formData, name: newName });
+                      // Trigger suggestions when name changes
+                      debouncedSuggestCategoryAndTags(formData.content || '', newName);
+                    }}
                     className="px-3 py-2 border border-gray-300 focus:border-transparent rounded-md focus:ring-2 focus:ring-blue-500 w-full"
                     placeholder="Enter prompt name"
                   />
                 </div>                <div>
                   <label className="block mb-2 font-medium text-gray-700 text-sm">
                     Category *
-                  </label>
-                  <select
+                  </label>                  <select
                     value={formData.categoryId || ''}
-                    onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, categoryId: e.target.value });
+                      // Clear category suggestion when user manually selects
+                      if (e.target.value) {
+                        setSuggestedCategory(null);
+                      }
+                    }}
                     className={`px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 w-full ${
                       !formData.categoryId ? 'border-red-300' : 'border-gray-300 focus:border-transparent'
                     }`}
@@ -365,9 +455,26 @@ export default function PromptEditor({
                         {category.name}
                       </option>
                     ))}
-                  </select>
-                  {!formData.categoryId && (
+                  </select>                  {!formData.categoryId && (
                     <p className="mt-1 text-red-600 text-sm">Category is required</p>
+                  )}
+                  {/* Category Suggestion */}
+                  {suggestedCategory && !formData.categoryId && (
+                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                      <p className="text-blue-700 text-sm">
+                        💡 Suggested category: 
+                        <button
+                          onClick={() => {
+                            setFormData({ ...formData, categoryId: suggestedCategory });
+                            setSuggestedCategory(null);
+                            toast.success('Category suggestion applied!');
+                          }}
+                          className="ml-1 text-blue-600 underline hover:text-blue-800"
+                        >
+                          {categories.find(c => c.id === suggestedCategory)?.name}
+                        </button>
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -395,6 +502,8 @@ export default function PromptEditor({
                     setFormData({ ...formData, content: newContent });
                     // Use debounced variable detection to prevent typing interference
                     debouncedDetectAndAddVariables(newContent);
+                    // Trigger suggestions when content changes
+                    debouncedSuggestCategoryAndTags(newContent, formData.name || '');
                   }}
                   rows={12}
                   className="px-3 py-2 border border-gray-300 focus:border-transparent rounded-md focus:ring-2 focus:ring-blue-500 w-full font-mono text-sm"
@@ -406,8 +515,7 @@ export default function PromptEditor({
               <div>
                 <label className="block mb-2 font-medium text-gray-700 text-sm">
                   Tags
-                </label>
-                <div className="flex flex-wrap gap-2">
+                </label>                <div className="flex flex-wrap gap-2">
                   {tags.map(tag => (
                     <label key={tag.id} className="flex items-center space-x-2">
                       <input
@@ -427,6 +535,33 @@ export default function PromptEditor({
                     </label>
                   ))}
                 </div>
+                {/* Tag Suggestions */}
+                {suggestedTags.length > 0 && (
+                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                    <p className="text-green-700 text-sm mb-2">
+                      🏷️ Suggested tags:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {suggestedTags.map(tagId => {
+                        const tag = tags.find(t => t.id === tagId);
+                        return tag ? (
+                          <button
+                            key={tagId}
+                            onClick={() => {
+                              const newTags = [...(formData.tags || []), tagId];
+                              setFormData({ ...formData, tags: newTags });
+                              setSuggestedTags(prev => prev.filter(id => id !== tagId));
+                              toast.success(`Added tag: ${tag.name}`);
+                            }}
+                            className="px-2 py-1 bg-green-100 hover:bg-green-200 text-green-700 text-xs rounded border border-green-300 transition-colors"
+                          >
+                            + {tag.name}
+                          </button>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

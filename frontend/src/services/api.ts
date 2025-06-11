@@ -7,6 +7,8 @@ import {
   CreatePromptTemplateRequest,
   UpdatePromptTemplateRequest,
   ExecutePromptRequest,
+  PromptSuggestionRequest,
+  PromptSuggestionResponse,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5055/api';
@@ -53,9 +55,12 @@ export const promptTemplateAPI = {
     const response = await api.get(`/prompts/${id}/export-yaml`);
     return response.data;
   },
-
   importYaml: async (yamlContent: string): Promise<PromptTemplate> => {
     const response = await api.post('/prompts/import-yaml', { yamlContent });
+    return response.data;
+  },
+  getSuggestions: async (data: PromptSuggestionRequest): Promise<PromptSuggestionResponse> => {
+    const response = await api.post('/prompts/suggest', data);
     return response.data;
   },
 };

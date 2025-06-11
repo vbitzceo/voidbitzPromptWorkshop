@@ -27,6 +27,8 @@
      }
    }
    ```
+   
+   > **Note**: The AI-powered suggestion system works with or without an API key. When configured with an AI provider, it provides intelligent context-aware suggestions. Without an API key, it falls back to robust keyword-based matching.
 
 4. **Run the backend**:
    ```bash
@@ -150,6 +152,7 @@ If using API keys instead of Managed Identity, set these in Azure App Service Co
 - ✅ **Prompt Template Management** - Create, edit, and organize prompt templates
 - ✅ **Category Organization** - Group prompts by categories
 - ✅ **Tag System** - Tag prompts with descriptions for easy filtering and understanding
+- ✅ **AI-Powered Suggestions** - Intelligent category and tag suggestions based on prompt content analysis
 - ✅ **Variable Substitution** - Dynamic variables in prompts
 - ✅ **AI Integration** - OpenAI, Azure OpenAI, and Ollama support
 - ✅ **Modern UI** - Next.js frontend with Tailwind CSS
@@ -162,6 +165,7 @@ If using API keys instead of Managed Identity, set these in Azure App Service Co
 - `POST /api/prompts` - Create new prompt template
 - `PUT /api/prompts/{id}` - Update prompt template
 - `DELETE /api/prompts/{id}` - Delete prompt template
+- `POST /api/prompts/suggest` - Get AI-powered category and tag suggestions
 - `GET /api/categories` - List all categories
 - `POST /api/categories` - Create new category
 - `PUT /api/categories/{id}` - Update category

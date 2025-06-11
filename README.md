@@ -21,6 +21,11 @@ A full-stack application for creating, managing, and executing LLM prompt templa
 - **📁 Smart Categorization**: Organize prompts by categories with custom colors and visual indicators
 - **🏷️ Interactive Tagging**: Tag prompts with colorful labels and descriptions for easy searching and filtering
 - **📝 Tag Descriptions**: Add detailed descriptions to tags explaining their purpose and intended use
+- **🤖 AI-Powered Suggestions**: Intelligent category and tag suggestions powered by LLM analysis of prompt content
+  - **Context-Aware Analysis**: AI analyzes prompt name and content to suggest relevant categories and prompting techniques
+  - **Smart Fallback**: Robust keyword-based suggestions when AI services are unavailable
+  - **Real-time Suggestions**: Get instant suggestions as you type prompt content
+  - **Technique Recognition**: Automatically identifies prompting techniques (Chain of Thought, Few-Shot, Zero-Shot, etc.)
 - **🔧 Auto-Variable Detection**: Automatically detect and create variables from `{{variable}}` patterns
 - **📤 YAML Import/Export**: Seamlessly import and export prompts in standardized YAML format
 
@@ -127,6 +132,7 @@ The frontend will be available at `http://localhost:3000` (or `http://localhost:
 - `PUT /api/prompts/{id}` - Update a prompt template
 - `DELETE /api/prompts/{id}` - Delete a prompt template
 - `POST /api/prompts/{id}/execute` - Execute a prompt template
+- `POST /api/prompts/suggest` - Get AI-powered category and tag suggestions
 - `POST /api/prompts/import-yaml` - Import prompts from YAML
 - `GET /api/prompts/export-yaml` - Export all prompts to YAML
 
@@ -238,6 +244,64 @@ When creating or editing tags, users can provide:
 - **Color**: Visual color identifier for the tag
 
 This feature helps teams maintain consistent tagging practices and makes it easier for new users to understand how tags should be applied.
+
+## 🤖 AI-Powered Suggestion System
+
+The VoidBitz Prompt Workshop features an intelligent suggestion system that analyzes your prompt content and automatically suggests relevant categories and tags.
+
+### How It Works
+
+1. **Real-time Analysis**: As you type your prompt name and content, the system analyzes the text to understand its purpose and domain
+2. **AI-Powered Intelligence**: When an AI service is configured (OpenAI, Azure OpenAI, or Ollama), the system uses LLM analysis for context-aware suggestions
+3. **Smart Fallback**: When AI services are unavailable, the system falls back to intelligent keyword-based matching
+4. **Validation**: All suggestions are validated against your existing categories and tags to ensure accuracy
+
+### Features
+
+- **🎯 Context-Aware Categorization**: Understands the domain and purpose of your prompt (Web Development, Content Creation, etc.)
+- **🏷️ Technique Recognition**: Automatically identifies prompting techniques like Chain of Thought, Few-Shot, Zero-Shot
+- **⚡ Real-time Suggestions**: Get instant feedback as you type
+- **🛡️ Robust Fallback**: Works reliably even without AI API keys
+- **✅ Smart Validation**: Only suggests categories and tags that exist in your system
+
+### API Usage
+
+The suggestion system is available via the REST API:
+
+```http
+POST /api/prompts/suggest
+Content-Type: application/json
+
+{
+  "name": "React Component Generator",
+  "content": "Generate a React functional component with TypeScript: {componentName}"
+}
+```
+
+**Response:**
+```json
+{
+  "suggestedCategoryId": "cat-web",
+  "suggestedTagIds": ["tag-few-shot", "tag-zero-shot"],
+  "reasoning": "Based on keyword analysis of the prompt content, this appears to be a web development prompt..."
+}
+```
+
+### Configuration
+
+The system automatically works with your configured AI provider:
+
+- **OpenAI**: Requires `OpenAI:ApiKey` in appsettings
+- **Azure OpenAI**: Uses Managed Identity or API key authentication
+- **Ollama**: Connects to local Ollama server
+- **No AI**: Falls back to keyword-based analysis
+
+### Benefits
+
+- **🚀 Improved Productivity**: Spend less time manually categorizing prompts
+- **📊 Better Organization**: Consistent categorization across your prompt library
+- **🎯 Enhanced Discoverability**: Better tags mean easier searching and filtering
+- **👥 Team Consistency**: Standardized categorization practices for teams
 
 ## Development Notes
 

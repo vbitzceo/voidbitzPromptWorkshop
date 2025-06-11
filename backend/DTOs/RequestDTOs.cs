@@ -89,3 +89,21 @@ public class UpdateTagRequest
     
     public string? Color { get; set; }
 }
+
+public class PromptSuggestionRequest
+{
+    [Required]
+    public string Name { get; set; } = string.Empty;
+    
+    [Required]
+    public string Content { get; set; } = string.Empty;
+}
+
+public class PromptSuggestionResponse
+{
+    public string? SuggestedCategoryId { get; set; }
+    
+    public List<string> SuggestedTagIds { get; set; } = new();
+    
+    public string Reasoning { get; set; } = string.Empty;
+}

@@ -59,3 +59,14 @@ export interface ExecutePromptRequest {
   promptTemplateId: string;
   variables: Record<string, unknown>;
 }
+
+export interface PromptSuggestionRequest {
+  name: string;
+  content: string;
+}
+
+export interface PromptSuggestionResponse {
+  suggestedCategoryId?: string;
+  suggestedTagIds: string[];
+  reasoning: string;
+}

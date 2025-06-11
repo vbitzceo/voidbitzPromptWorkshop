@@ -251,19 +251,79 @@ public class SemanticKernelService : ISemanticKernelService
             _logger.LogWarning("Variable {VariableName} not found in provided variables", variableName);
             return match.Value;
         });
-    }
-
-    private static string GenerateMockResponse(PromptTemplate promptTemplate, string processedContent)
+    }    private static string GenerateMockResponse(PromptTemplate promptTemplate, string processedContent)
     {
         // Generate a mock response based on the prompt type
         return promptTemplate.Name.ToLower() switch
         {
+            var name when name.Contains("suggestion") || name.Contains("analysis") => GenerateSuggestionMock(processedContent),
             var name when name.Contains("code") => GenerateCodeReviewMock(processedContent),
             var name when name.Contains("blog") => GenerateBlogPostMock(processedContent),
             var name when name.Contains("review") => GenerateCodeReviewMock(processedContent),
             var name when name.Contains("write") || name.Contains("content") => GenerateContentMock(processedContent),
-            _ => GenerateGenericMock(promptTemplate.Name, processedContent)
-        };
+            _ => GenerateGenericMock(promptTemplate.Name, processedContent)        };
+    }    private static string GenerateSuggestionMock(string processedContent)
+    {
+        // Extract the user's original prompt from the analysis prompt
+        var userPromptMatch = System.Text.RegularExpressions.Regex.Match(
+            processedContent, 
+            @"PROMPT TO ANALYZE:\s*Name:\s*(.+?)\s*Content:\s*(.+?)\s*AVAILABLE CATEGORIES:", 
+            System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        
+        string userContent = "";
+        if (userPromptMatch.Success)
+        {
+            var name = userPromptMatch.Groups[1].Value.Trim();
+            var content = userPromptMatch.Groups[2].Value.Trim();
+            userContent = $"{name} {content}".ToLower();
+        }
+        else
+        {
+            // Fallback to full content if extraction fails
+            userContent = processedContent.ToLower();
+        }
+        
+        // Simple keyword-based category suggestion
+        string suggestedCategoryId = "";
+        if (userContent.Contains("web") || userContent.Contains("html") || userContent.Contains("css") || 
+            userContent.Contains("javascript") || userContent.Contains("react") || userContent.Contains("component") ||
+            userContent.Contains("frontend") || userContent.Contains("backend") || userContent.Contains("api"))
+        {
+            suggestedCategoryId = "cat-web";
+        }
+        else if (userContent.Contains("content") || userContent.Contains("write") || userContent.Contains("blog") || 
+                 userContent.Contains("article") || userContent.Contains("copy") || userContent.Contains("social media") ||
+                 userContent.Contains("creative") || userContent.Contains("story"))
+        {
+            suggestedCategoryId = "cat-content";
+        }
+        
+        // Simple keyword-based tag suggestions
+        var suggestedTags = new List<string>();
+        if (userContent.Contains("few-shot") || userContent.Contains("example") || userContent.Contains("sample"))
+        {
+            suggestedTags.Add("tag-few-shot");
+        }
+        if (userContent.Contains("zero-shot") || userContent.Contains("direct"))
+        {
+            suggestedTags.Add("tag-zero-shot");
+        }
+        if (userContent.Contains("reasoning") || userContent.Contains("think") || userContent.Contains("step") ||
+            userContent.Contains("chain") || userContent.Contains("thought"))
+        {
+            suggestedTags.Add("tag-chain-of-thought");
+        }
+        
+        // Create JSON response
+        var tagList = string.Join(", ", suggestedTags.Select(t => $"\"{t}\""));
+        var categoryType = suggestedCategoryId == "cat-web" ? "web development" : 
+                          suggestedCategoryId == "cat-content" ? "content creation" : "general purpose";
+        
+        return $@"{{
+  ""suggestedCategoryId"": ""{suggestedCategoryId}"",
+  ""suggestedTagIds"": [{tagList}],
+  ""reasoning"": ""Based on keyword analysis of the prompt content, this appears to be a {categoryType} prompt. The suggested tags reflect the prompting techniques that would be most suitable for this type of request.""
+}}";
     }
 
     private static string GenerateCodeReviewMock(string content)
