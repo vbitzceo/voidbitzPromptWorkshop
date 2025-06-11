@@ -460,7 +460,7 @@ export default function PromptEditor({
                   )}
                   {/* Category Suggestion */}
                   {suggestedCategory && !formData.categoryId && (
-                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="bg-blue-50 mt-2 p-2 border border-blue-200 rounded-md">
                       <p className="text-blue-700 text-sm">
                         💡 Suggested category: 
                         <button
@@ -469,7 +469,7 @@ export default function PromptEditor({
                             setSuggestedCategory(null);
                             toast.success('Category suggestion applied!');
                           }}
-                          className="ml-1 text-blue-600 underline hover:text-blue-800"
+                          className="ml-1 text-blue-600 hover:text-blue-800 underline"
                         >
                           {categories.find(c => c.id === suggestedCategory)?.name}
                         </button>
@@ -537,8 +537,8 @@ export default function PromptEditor({
                 </div>
                 {/* Tag Suggestions */}
                 {suggestedTags.length > 0 && (
-                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
-                    <p className="text-green-700 text-sm mb-2">
+                  <div className="bg-green-50 mt-3 p-3 border border-green-200 rounded-md">
+                    <p className="mb-2 text-green-700 text-sm">
                       🏷️ Suggested tags:
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -553,7 +553,7 @@ export default function PromptEditor({
                               setSuggestedTags(prev => prev.filter(id => id !== tagId));
                               toast.success(`Added tag: ${tag.name}`);
                             }}
-                            className="px-2 py-1 bg-green-100 hover:bg-green-200 text-green-700 text-xs rounded border border-green-300 transition-colors"
+                            className="bg-green-100 hover:bg-green-200 px-2 py-1 border border-green-300 rounded text-green-700 text-xs transition-colors"
                           >
                             + {tag.name}
                           </button>
