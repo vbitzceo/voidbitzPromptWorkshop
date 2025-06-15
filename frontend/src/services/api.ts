@@ -58,7 +58,7 @@ export const promptTemplateAPI = {
   importYaml: async (yamlContent: string): Promise<PromptTemplate> => {
     const response = await api.post('/prompts/import-yaml', { yamlContent });
     return response.data;
-  },
+  },  
   getSuggestions: async (data: PromptSuggestionRequest): Promise<PromptSuggestionResponse> => {
     const response = await api.post('/prompts/suggest', data);
     return response.data;

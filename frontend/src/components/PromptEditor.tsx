@@ -129,9 +129,11 @@ export default function PromptEditor({
     debounceTimeoutRef.current = setTimeout(() => {
       detectAndAddVariables(content);
     }, 500);
-  }, [detectAndAddVariables]);  // Function to suggest category and tags based on content using AI
+  }, [detectAndAddVariables]);  
+  
+  // Function to suggest category and tags based on content using AI
   const suggestCategoryAndTags = useCallback(async (content: string, name: string = '') => {
-    if (!content.trim() && !name.trim()) {
+    if (!content.trim() || !name.trim()) {
       setSuggestedCategory(null);
       setSuggestedTags([]);
       return;
@@ -495,7 +497,8 @@ export default function PromptEditor({
               <div>
                 <label className="block mb-2 font-medium text-gray-700 text-sm">
                   Prompt Content *
-                </label>                <textarea
+                </label>                
+                <textarea
                   value={formData.content || ''}
                   onChange={(e) => {
                     const newContent = e.target.value;
